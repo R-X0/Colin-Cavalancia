@@ -68,8 +68,42 @@ class PineScriptScraper:
             header = container.find_element(By.XPATH, f".//div[contains(@class, 'tv-pine-reference-item__sub-header') and contains(., 'Example')]")
             pre_element = header.find_element(By.XPATH, 'following-sibling::pre[1]')
             code_element = pre_element.find_element(By.XPATH, './/code')
-            code_text = code_element.get_attribute('textContent').strip()
-            return code_text
+            
+            # First try to get lines using span elements
+            try:
+                line_elements = code_element.find_elements(By.XPATH, './/span[contains(@class, "mtk")]/..')
+                if line_elements:
+                    code_lines = []
+                    for line in line_elements:
+                        line_text = line.get_attribute('textContent').strip()
+                        if line_text:  # Only add non-empty lines
+                            code_lines.append(line_text)
+                    return '\n'.join(code_lines)
+            except NoSuchElementException:
+                pass
+                
+            # If that fails, try getting the raw text content and split by br tags
+            try:
+                code_text = code_element.get_attribute('textContent').strip()
+                if code_text:
+                    # Split by newlines and clean up
+                    code_lines = [line.strip() for line in code_text.split('\n') if line.strip()]
+                    return '\n'.join(code_lines)
+            except:
+                pass
+
+            # If we get here and haven't returned anything, try one last method
+            try:
+                # Get all text nodes
+                code_text = code_element.text.strip()
+                if code_text:
+                    code_lines = [line.strip() for line in code_text.split('\n') if line.strip()]
+                    return '\n'.join(code_lines)
+            except:
+                pass
+
+            return "No example found"
+                
         except NoSuchElementException:
             return "No example found"
 
